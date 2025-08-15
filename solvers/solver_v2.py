@@ -107,7 +107,7 @@ def BE_solver(xmin:float, xmax:float,ys:list,initial_condition,collisions, dx = 
                 df_dy = (fs[j+1][i] - fs[j-1][i]) / (ys[j+1] - ys[j-1])
 
             f_ys = [fs[k][i] for k in range(N)]
-
+            
             # Compute the right-hand side
             y = ys[j]
             
