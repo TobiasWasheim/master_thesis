@@ -70,8 +70,12 @@ def H(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
 
 
 def collisions_ann(f,ys,x):
-        
-
+    """ 
+    
+    """
+    # define functions I and F1 
+    I1_Matrix = []
+    # f = f.shape(-1)
 
     c = lambda y,x: 1 / (2*np.pi)**3 * 1/(2 * eps(x,y))
 
@@ -79,17 +83,16 @@ def collisions_ann(f,ys,x):
     integrand = lambda y1,x,f1: [c(y1,x)* yi * yi /(2 * eps(x,yi)) * I(x,y1,yi,f1,f) * F1(x,y1,yi,f1,f[i]) for i,yi in enumerate(ys)]
 
 
-    # return np.array([sc.simpson(integrand(y,x,f[i]),ys) for i,y in enumerate(ys)])
     return sc.trapezoid(integrand(ys,x,f),ys)
 
 def collisions_sca(f,ys,x):
-
+    # f = f.shape(-1)
+    
     c = lambda y,x: 1 / (2*np.pi)**3 * 1/(2 * eps(x,y))
 
     
     integrand = lambda y1,x,f1: np.array([c(y1,x)* yi* yi/(2 * eps(x,yi)) * H(x,y1,yi,f1,f) * F2(x,y1,yi,f1,f) for i,yi in enumerate(ys)])
 
-    # return np.array([sc.simpson(integrand(y,x,f[i])) for i,y in enumerate(ys)])    
     return sc.trapezoid(integrand(ys,x,f),ys)
 
 
