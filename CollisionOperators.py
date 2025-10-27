@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.integrate as sc
+from numba import jit
 
 def eps(x:float,y:float) -> float:
     """
@@ -33,7 +34,7 @@ def F2(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     f1: -> distribution function value at (y1,x) \n
     f2: -> distribution function value at (y2,x)
     """
-    return -f1 + f2 * np.exp(eps(x,y1) - eps(x,y2))
+    return -f1 + f2 * np.exp(-(eps(x,y1) - eps(x,y2)))
 
 def I1(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     """
@@ -46,8 +47,7 @@ def I1(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     f1: -> distribution function value at (y1,x) \n
     f2: -> distribution function value at (y2,x)
     """
-    return 1 / 2 * F1(x,y1,y2,f1,f2)
-
+    return 1 / 2 
 def I2(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     """
     Part of integrand of the annihilation collision operator's integral
@@ -62,7 +62,7 @@ def I2(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     return I1(x,y1,y2,f1,f2) * (y1 * y1 + y2 * y2) / (x * x)
 
 
-def H(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
+def H(x:float,y1:float,y3:float,f1:float,f3:float) -> float:
     """
     Part of integrand of the elastic scattering collision operator's integral
 
@@ -73,9 +73,7 @@ def H(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     f1: -> distribution function value at (y1,x) \n
     f2: -> distribution function value at (y2,x)
     """
-    return 2 /(y1 * y2) * (np.exp(-abs(y1 - y2)/2) - np.exp(-(y1 + y2)/2)) * F2(x, y1, y2, f1, f2)
-
-
+    return y3 / np.sqrt(x*x+y3*y3) * ((y1+y3)-abs(y1-y3))/y1 * F2(x,y1,y3,f1,f3)
 
 def collisions_ann(fs:list,ys:list,x:float,J:int) -> list:
     """ 
@@ -119,7 +117,7 @@ def collisions_sca(fs:list,ys:list,x:float) -> list:
     """
     front_factor = lambda y,x: 1 / (2*np.pi)**3 * 1/(2 * eps(x,y))
 
-    integrands = np.array([[front_factor(y1,x) * y2 * y2 /(2 * eps(x,y2)) * H(x,y1,y2,f1,f2) for y2,f2 in zip(ys,fs)] for y1,f1 in zip(ys,fs)])
+    integrands = np.array([[front_factor(y1,x) * H(x,y1,y2,f1,f2) for y2,f2 in zip(ys,fs)] for y1,f1 in zip(ys,fs)])
     integrals = np.array([sc.trapezoid(integrand,ys) for integrand in integrands])
     return integrals
 
