@@ -11,6 +11,11 @@ from CollisionOperators import collisions_ann, collisions_sca, eps, I1, F1
 
 ################################################################################
 
+
+@njit
+def test_function(f1,f3,y1,y3,x):
+    return - f1 + np.sin(np.pi * y1) * f3
+
 @njit
 def E(y,x):
     return np.sqrt(y*y+x*x)
@@ -92,6 +97,8 @@ def solver(x_span,y_span,initial_condition, type:str) -> tuple:
             return scattering(f1, f3, y1, y3, x)
         elif type == "annihilation+scattering":
             return s_annihilation(f1,f3,y1,y3,x) + scattering(f1,f3,y1,y3,x)
+        elif type == "test":
+            return test_function(f1,f3,y1,y3,x)
         else:
             sys.exit("Unknown collision")
   
