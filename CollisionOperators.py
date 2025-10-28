@@ -1,14 +1,15 @@
 import numpy as np
 import scipy.integrate as sc
-from numba import jit
+from numba import njit
 
+@njit
 def eps(x:float,y:float) -> float:
     """
     Dimensionless energy (Energy/Temperature)
     """
     return np.sqrt(x*x + y*y)
 
-
+@njit
 def F1(x:float,y1:float, y2:float,f1:float,f2:float) -> float:
     """
     Part of integrand of the annihilation collision operator's integral
@@ -36,6 +37,7 @@ def F2(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     """
     return -f1 + f2 * np.exp(-(eps(x,y1) - eps(x,y2)))
 
+@njit
 def I1(x:float,y1:float,y2:float,f1:float,f2:float) -> float:
     """
     Part of integrand of the annihilation collision operator's integral
