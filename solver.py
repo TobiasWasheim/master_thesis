@@ -1,55 +1,27 @@
-"""
-
-Algorithm for solving the Boltzmann equation - using scipy.integrate's solve_ivp
-
-"""
 import numpy as np
 import sys
 import scipy.integrate as sc
 from numba import njit
-from CollisionOperators import collisions_ann, collisions_sca, eps, I1, F1
+from collisions import E, test_function, scattering, s_annihilation, p_annihilation
+from CollisionOperators import collisions_ann, collisions_sca
 
-################################################################################
+def solver(x_span,y_span,initial_condition, collision) -> tuple:
+    """
+    Solves coupled integro ordinary differential equation 
+    """
+    ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
+    f0 = np.array([initial_condition(y, x_span[0]) for y in ys], dtype=np.float64)
+      
+    def RHS_wrapper(x,fs):
+        return collision_operator(x,fs,ys,collision)
+    
+    # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
+    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=1e-6, atol=1e-6)
+    xs = sol.t
+    fs = sol.y      
 
+    return (xs, ys, fs)
 
-@njit
-def test_function(f1,f3,y1,y3,x):
-    return - f1 + np.sin(np.pi * y1) * f3
-
-@njit
-def E(y,x):
-    return np.sqrt(y*y+x*x)
-
-def equilibrium(y,x):
-    return np.exp(-E(y,x))
-
-@njit
-def scattering(f1,f3,y1,y3,x):
-
-        J = y3 / E(y3,x) * (y1 + y3 - abs(y1 - y3))/y1
-        Lambda = -f1 + f3 * np.exp(-(E(y1,x) - E(y3,x)))
-
-        return 1/E(y1,x) * J * Lambda
-
-
-
-@njit
-def s_annihilation(f1,f2,y1,y2,x):
-
-    # front_factor = 1/E(x,y1)
-
-    # return front_factor * y2 * y2 /(E(x,y2)) * I1(x,y1,y2,f1,f2) * F1(x,y1,y2,f1,f2)
-    front_factor = 1/E(y1,x)
-    J = y2 * y2 / E(y2,x)
-    Lambda = -f1 * f2 + np.exp(-E(y1,x)-E(y2,x))
-    return front_factor * J * Lambda
-
-@njit
-def p_annihilation(f1,f2,y1,y2,x):
-
-    J = y2 * y2 / E(y2,x) * (y1 * y1 + y2 * y2) / (x * x)
-    Lambda = -f1 * f2 + np.exp(-E(y1,x)-E(y2,x))
-    return 1/E(y1,x) * J * Lambda
 
 @njit
 def trapezoid(y, x):
@@ -74,63 +46,11 @@ def collision_operator(x:float, fs:list,ys:list,collision):
         rhs[i] = trapezoid(integrand_values, ys)
     return rhs
 
-################################################################################
-
-
-def solver(x_span,y_span,initial_condition, type:str) -> tuple:
-    """
-    Solves coupled integro ordinary differential equation 
-    """
-   
-
-    ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
-    f0 = np.array([initial_condition(y, x_span[0]) for y in ys], dtype=np.float64)
-
-    @njit
-    def collision(f1, f3, y1, y3, x):
-
-        if type == "s-wave annihilation":
-            return s_annihilation(f1, f3, y1, y3, x)
-        elif type == "p-wave annihilation":
-            return p_annihilation(f1,f3,y1,y3,x)
-        elif type == "scattering":
-            return scattering(f1, f3, y1, y3, x)
-        elif type == "annihilation+scattering":
-            return s_annihilation(f1,f3,y1,y3,x) + scattering(f1,f3,y1,y3,x)
-        elif type == "test":
-            return test_function(f1,f3,y1,y3,x)
-        else:
-            sys.exit("Unknown collision")
-  
-    def RHS_wrapper(x,fs):
-        
-        return collision_operator(x,fs,ys,collision)
-    
-    # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
-    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=1e-6, atol=1e-6)
-    xs = sol.t
-    fs = sol.y      
-
-    return (xs, ys, fs)
-
-
-# @njit
-# def compute_ndot(xs,fs,ys):
-#     N = len(xs)
-#     n = len(ys)
-    
-#     n_dot = np.empty(N)
-#     for i in range(N):
-#         collisions = np.empty(n)
-#         for j in range(n):
-#             collisions[j] = collision_operator(xs[i],fs,ys,scattering)
-#     return n_dot   
-
 
 
 def energy_conservation(x_span,y_span,initial_condition):
 
-    solv = solver(x_span,y_span,initial_condition,"scattering")
+    solv = solver(x_span,y_span,initial_condition,scattering)
 
     xs = solv[0]
     ys = solv[1]
