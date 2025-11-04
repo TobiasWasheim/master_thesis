@@ -2,10 +2,10 @@ import numpy as np
 import sys
 import scipy.integrate as sc
 from numba import njit
-from collisions import E, test_function, scattering, s_annihilation, p_annihilation
+from collisions import E, test_function, scattering, s_annihilation, p_annihilation, scattering_
 from CollisionOperators import collisions_ann, collisions_sca
 
-def solver(x_span,y_span,initial_condition, collision) -> tuple:
+def solver(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6) -> tuple:
     """
     Solves coupled integro ordinary differential equation 
     """
@@ -13,26 +13,28 @@ def solver(x_span,y_span,initial_condition, collision) -> tuple:
     f0 = np.array([initial_condition(y, x_span[0]) for y in ys], dtype=np.float64)
       
     def RHS_wrapper(x,fs):
-        return collision_operator(x,fs,ys,collision)
+        return collision_operator(x,fs,ys,Gamma,collision)
     
     # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
-    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=1e-6, atol=1e-6)
+    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=rtol,atol=atol)
     xs = sol.t
     fs = sol.y      
 
     return (xs, ys, fs)
 
+@njit
+def trapezoid(y:list, x:list) -> float:
+    # s = 0.0
+    # for i in range(1, len(y)):
+    #     s += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1])
+    # return s
+    return np.trapezoid(y,x)
 
 @njit
-def trapezoid(y, x):
-    s = 0.0
-    for i in range(1, len(y)):
-        s += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1])
-    return s
-
-@njit
-def collision_operator(x:float, fs:list,ys:list,collision):
-        
+def collision_operator(x:float, fs:list,ys:list,Gamma:float,collision) -> list:
+    """
+    Computes a vector of collision operators for different y1s
+    """
     N = len(fs)
     rhs = np.empty(N)
     for i in range(N):
@@ -42,15 +44,13 @@ def collision_operator(x:float, fs:list,ys:list,collision):
         for j in range(N):
             f3 = fs[j]
             y3 = ys[j]
-            integrand_values[j] = collision(f1, f3, y1, y3, x)
+            integrand_values[j] = collision(f1, f3, y1, y3, x,Gamma)
         rhs[i] = trapezoid(integrand_values, ys)
     return rhs
 
+def energy_conservation(x_span,y_span,Gamma,initial_condition,collision,rtol=1e-6,atol=1e-6):
 
-
-def energy_conservation(x_span,y_span,initial_condition):
-
-    solv = solver(x_span,y_span,initial_condition,scattering)
+    solv = solver(x_span,y_span,Gamma,initial_condition,collision,rtol,atol)
 
     xs = solv[0]
     ys = solv[1]
@@ -71,9 +71,9 @@ def energy_conservation(x_span,y_span,initial_condition):
             for j in range(N):
                 f3 = fs[j][k]
                 y3 = ys[j]
-                integrand_values[j] = scattering(f1, f3, y1, y3, xs[k])
-            collision_operator = trapezoid(integrand_values, ys)
-            n_dot_integrand[i] = collision_operator * ys[i] * ys[i]
+                integrand_values[j] = collision(f1, f3, y1, y3, xs[k],Gamma)
+            collision_op = trapezoid(integrand_values, ys)
+            n_dot_integrand[i] = collision_op * ys[i] * ys[i]
             E_dot_integrand[i] = n_dot_integrand[i] * E(y1, xs[k])
         n_dot[k] = trapezoid(n_dot_integrand,ys) 
         E_dot[k] = trapezoid(E_dot_integrand,ys)
@@ -81,13 +81,31 @@ def energy_conservation(x_span,y_span,initial_condition):
     return (n_dot,E_dot,xs)
             
 
+def solver_density(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6):
+    """
+    Computing the rhs of the integrated Boltzmann equation
+    """
+    ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
+    n0 = initial_condition(x_span[0])
+    
+    def RHS_wrapper(x,fs):
+        return integrated_operator(x,fs,ys,Gamma,collision)
 
+    # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
+    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=n0, method="BDF", rtol=rtol,atol=atol)
+    xs = sol.t
+    ns = sol.y      
 
+    return (xs, ys, ns)
 
-
-
-
-
+@njit
+def integrated_operator(x:float,fs:list,ys:list,Gamma:float,collision):
+    """
+    Integrating the collision operator
+    """
+    collisions = collision_operator(x,fs,ys,Gamma,collision)
+    integral = trapezoid(collisions,ys)
+    return np.array([integral]).reshape(-1)
 
 
 

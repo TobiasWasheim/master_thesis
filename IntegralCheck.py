@@ -32,18 +32,22 @@ def collision_2D(t,p1,p2,p3,Lambda):
     return front_factor * integrand * Lambda(t,p1,p3)
 
 def stepFunction(a,b,c):
-    
+    if b*b - 4 * a * c >= 0:
+        return 1
+    return 0
 
-def J(p1,p2,p3,lower,upper):
+def J(p1,p2,p3,lower,upper,stepFunction:bool):
     
     xs = np.linspace(lower,upper,100)
     a = 1
     b = 1
     c = 1
-
-    integrand = 1/(np.sqrt(-a) * stepFunction(a,b,c))
-
-    return sc.trapezoid()
+    if stepFunction == True:
+        integrand = 1/(np.sqrt(-a) * stepFunction(a,b,c))
+    else:
+        integrand = 1/(np.sqrt(-a))
+    
+    return 0
 
 
 
