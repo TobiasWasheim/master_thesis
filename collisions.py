@@ -14,7 +14,7 @@ def density_equilibrium(x):
     """
     gi = 2
     gs = 1
-    solution = gi * 45 / (4 * pow(np.pi,4)) * x*x / gs * sc.kn(2, x)
+    solution = gi * 45 / (4 * np.pi**4) * x*x / gs 
     return solution
 
 def equilibrium(y,x):
@@ -42,6 +42,12 @@ def E(y,x):
 # integrands of the 1 dimensional collision operators
 
 ############################
+
+def f0(y,x):
+    return 1 + y
+
+def test_solution(y,x):
+    return np.exp(-x) * (1 + y) + np.sin(np.pi * y) * 1.5 / (2/np.pi) * (np.exp((2/np.pi - 1)*x) - np.exp(-x))
 
 @njit
 def test_function(f1,f3,y1,y3,x,Gamma):

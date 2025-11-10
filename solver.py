@@ -85,32 +85,39 @@ def solver_density(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,a
     """
     Computing the rhs of the integrated Boltzmann equation
     """
-    ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
-    f0 = np.array([initial_condition(x_span[0] for y in ys)])
+    ys = np.linspace(y_span[0], y_span[1], y_span[2])
+    f0 = np.array([initial_condition(x_span[0])])
       
-    def RHS_wrapper(x,fs):
-        
-        collisions = collision_operator(x,fs,ys,Gamma,collision)
-
-        print(collisions)
-        
-        return collisions
+    def RHS_wrapper(x,fs):  
+        return integrated_operator(x,fs,ys,Gamma,collision)        
     
     # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
     sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=rtol,atol=atol)
     xs = sol.t
-    fs = sol.y      
+    fs = sol.y  
 
     return (xs, ys, fs)
 
 @njit
-def integrated_operator(x:float,fs:list,ys:list,Gamma:float,collision):
+def integrated_operator(x:float,ns:float,ys:list,Gamma:float,collision) -> float:
     """
     Integrating the collision operator
     """
-    collisions = collision_operator(x,fs,ys,Gamma,collision)
-    integral = trapezoid(collisions,ys)
-    return np.array([integral]).reshape(-1)
+    N = len(ys)
+    rhs = np.empty(N)
+    for i in range(N):
+        f1 = fs[i]
+        y1 = ys[i]
+        integrand_values = np.empty(N)
+        for j in range(N):
+            f3 = fs[j]
+            y3 = ys[j]
+            integrand_values[j] = collision(f1, f3, y1, y3, x,Gamma)
+        rhs[i] = trapezoid(integrand_values, ys)
+    
+    RHS = trapezoid(rhs,ys)
+
+    return RHS
 
 
 
