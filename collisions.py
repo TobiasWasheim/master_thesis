@@ -14,8 +14,8 @@ def density_equilibrium(x):
     """
     gi = 2
     gs = 1
-    solution = gi * 45 / (4 * np.pi**4) * x**2 / gs * sc.kn(2, x)
-    return np.array([solution]).reshape(-1)
+    solution = gi * 45 / (4 * pow(np.pi,4)) * x*x / gs * sc.kn(2, x)
+    return solution
 
 def equilibrium(y,x):
     """

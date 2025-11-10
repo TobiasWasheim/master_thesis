@@ -86,17 +86,22 @@ def solver_density(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,a
     Computing the rhs of the integrated Boltzmann equation
     """
     ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
-    n0 = initial_condition(x_span[0])
-    
+    f0 = np.array([initial_condition(x_span[0] for y in ys)])
+      
     def RHS_wrapper(x,fs):
-        return integrated_operator(x,fs,ys,Gamma,collision)
+        
+        collisions = collision_operator(x,fs,ys,Gamma,collision)
 
+        print(collisions)
+        
+        return collisions
+    
     # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
-    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=n0, method="BDF", rtol=rtol,atol=atol)
+    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=rtol,atol=atol)
     xs = sol.t
-    ns = sol.y      
+    fs = sol.y      
 
-    return (xs, ys, ns)
+    return (xs, ys, fs)
 
 @njit
 def integrated_operator(x:float,fs:list,ys:list,Gamma:float,collision):
