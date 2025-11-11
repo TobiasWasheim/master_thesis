@@ -39,7 +39,7 @@ def E(y,x):
 
 ############################
 
-# integrands of the 1 dimensional collision operators
+# Functions to test the integrator
 
 ############################
 
@@ -55,6 +55,14 @@ def test_function(f1,f3,y1,y3,x,Gamma):
     Test case for the numerical Boltzmann Equation Solver.
     """
     return - f1 + np.sin(np.pi * y1) * f3
+
+
+############################
+
+# integrands of the 1 dimensional collision operators
+
+############################
+
 
 @njit
 def scattering(f1,f3,y1,y3,x,Gamma):
@@ -86,7 +94,7 @@ def p_annihilation(f1,f2,y1,y2,x,Gamma):
     """
     J = y2 * y2 / E(y2,x) * (y1 * y1 + y2 * y2) / (x * x)
     Lambda = -f1 * f2 + np.exp(-E(y1,x)-E(y2,x))
-    return 1/E(y1,x) * J * Lambda
+    return Gamma * 1/E(y1,x) * J * Lambda
 
 @njit
 def annihilation_scattering(f1,f2,y1,y2,x,Gamma):
@@ -96,20 +104,10 @@ def annihilation_scattering(f1,f2,y1,y2,x,Gamma):
     return s_annihilation(f1,f2,y1,y2,x,Gamma) + scattering(f1,f2,y1,y2,x,Gamma)
 
 @njit
-def scattering_(f1,f2,y1,y2,x,Gamma):
-    E1 = np.sqrt(x*x + y1*y1)
-    E2 = np.sqrt(x*x+y2*y2)
-    front_factor = 1/(np.pi)**3 * 1/(2 * E1)
-    H = 2/(y1 * y2) * (np.exp(-abs(y1-y2)/2) - np.exp(-(y1+y2)/2))
-    F = - f1 + f2 * np.exp(-E1-E2)
-    
-    return front_factor * y2*y2/(2*E2) * H * F
-
-@njit
 def scattering_units(f1,f3,p1,p3,t,Gamma):
     m = 1
-    E1 = np.sqrt(p1*p1 + m*m)
-    E3 = np.sqrt(p3*p3 + m*m)
+    E1 = E(p1,t)
+    E3 = E(p3,t)
 
     Lambda = -f1 + f3 * np.exp(-(E1-E3)*np.sqrt(t))
     J = p3 / E3 * (p1+p3 - abs(p1-p3))/p1

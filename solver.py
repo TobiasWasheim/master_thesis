@@ -3,7 +3,7 @@ import sys
 import scipy.integrate as sc
 from numba import njit
 from collisions import E, test_function, scattering, s_annihilation, p_annihilation, scattering_
-from CollisionOperators import collisions_ann, collisions_sca
+from EarlierVersion.CollisionOperators import collisions_ann, collisions_sca
 
 def solver(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6) -> tuple:
     """
@@ -24,10 +24,6 @@ def solver(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6
 
 @njit
 def trapezoid(y:list, x:list) -> float:
-    # s = 0.0
-    # for i in range(1, len(y)):
-    #     s += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1])
-    # return s
     return np.trapezoid(y,x)
 
 @njit
@@ -79,124 +75,3 @@ def energy_conservation(x_span,y_span,Gamma,initial_condition,collision,rtol=1e-
         E_dot[k] = trapezoid(E_dot_integrand,ys)
     
     return (n_dot,E_dot,xs)
-            
-
-def solver_density(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6):
-    """
-    Computing the rhs of the integrated Boltzmann equation
-    """
-    ys = np.linspace(y_span[0], y_span[1], y_span[2])
-    f0 = np.array([initial_condition(x_span[0])])
-      
-    def RHS_wrapper(x,fs):  
-        return integrated_operator(x,fs,ys,Gamma,collision)        
-    
-    # Solve the Integro-ODE using Scipy's ODE solver from x0,...,xN
-    sol = sc.solve_ivp(fun=RHS_wrapper, t_span=x_span, y0=f0, method="BDF", rtol=rtol,atol=atol)
-    xs = sol.t
-    fs = sol.y  
-
-    return (xs, ys, fs)
-
-@njit
-def integrated_operator(x:float,ns:float,ys:list,Gamma:float,collision) -> float:
-    """
-    Integrating the collision operator
-    """
-    N = len(ys)
-    rhs = np.empty(N)
-    for i in range(N):
-        f1 = fs[i]
-        y1 = ys[i]
-        integrand_values = np.empty(N)
-        for j in range(N):
-            f3 = fs[j]
-            y3 = ys[j]
-            integrand_values[j] = collision(f1, f3, y1, y3, x,Gamma)
-        rhs[i] = trapezoid(integrand_values, ys)
-    
-    RHS = trapezoid(rhs,ys)
-
-    return RHS
-
-
-
-def BE_solver(x_span: tuple, y_span: tuple, y_steps:int,J:int, interaction_strength:float,collision_type="both",initial_condition=lambda y,x: np.exp(-np.sqrt(x*x+y*y))):
-
-
-    xmin = x_span[0]
-
-    ymin = y_span[0]
-    ymax = y_span[1]
-
-    # define the momentum axis
-    ys = np.linspace(ymin,ymax,y_steps)
-
-    # define initial distribution
-    f0 = [initial_condition(y,xmin) for y in ys]
-
-    # define Right-hand side
-    
-    def rhs(x, fs):
-        """
-        Right-hand side of the BE.
-        """
-
-        c_ann = collisions_ann(fs,ys,x,J)
-        c_sca = collisions_sca(fs,ys,x)
-
-        if collision_type == "both":                
-            interaction_term = interaction_strength * np.add(c_sca,c_ann)
-        elif collision_type == "elastic scattering":
-            interaction_term = interaction_strength * c_sca
-        elif collision_type == "annihilation":
-            interaction_term = interaction_strength * c_ann
-        else:
-            interaction_term = 0
-        
-        return interaction_term
-
-
-
-    # solve BE
-    sol = sc.solve_ivp(fun=rhs, t_span=x_span, y0=f0, method="BDF", rtol=1e-6, atol=1e-9)
-
-    print(f"Solved BE for (type={collision_type},# y-steps={y_steps})")
-
-        
-    xs = sol.t
-    fs = sol.y
-    return (xs,fs,ys)
-
-# def energy_conservation(xs:list,ys:list,fs:list,J:int):
-    
-
-#     n_result = []
-
-#     E_result = []
-
-    
-
-#     # integrating the collision operator over y
-#     for k in range(len(xs)):
-#         f = fs[:,k]
-#         x = xs[k]
-
-#         c_ann = collisions_ann(f,ys,x,J)
-#         c_sca = collisions_sca(f,ys,x)
-
-#         # computing n_dot
-#         n_dot = sc.trapezoid([ys[i] * ys[i] * c_sca[i] for i in range(len(ys))],ys)
-        
-#         # computing n
-#         integrand = [ys[i] * ys[i] * f[i] for i in range(len(ys))]
-#         n = sc.trapezoid(integrand,ys)
-#         n_result.append(n_dot/n)
-
-#         # computing E_dot
-#         integrand = [(c_ann[i] + c_sca[i]) * ys[i]*ys[i] * eps(x,ys[i]) for i in range(len(ys))]
-#         E_dot = sc.trapezoid(integrand,ys)
-#         E_result.append(E_dot)
-
-
-#     return (n_result,E_result)

@@ -91,7 +91,7 @@ def collisions_ann(fs:list,ys:list,x:float,J:int) -> list:
 
     if J == 0:
         integrands = np.array([
-            [front_factor(y1,x) * y2 * y2 /(2 * eps(x,y2)) * I1(x,y1,y2,f1,f2) for y2,f2 in zip(ys,fs)] for y1,f1 in zip(ys,fs)
+            [front_factor(y1,x) * y2 * y2 /(2 * eps(x,y2)) * I1(x,y1,y2,f1,f2) * F1(x,y1,y2,f1,f2) for y2,f2 in zip(ys,fs)] for y1,f1 in zip(ys,fs)
             ])
     else:
         integrands = np.array([
