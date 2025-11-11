@@ -7,6 +7,9 @@ from collisions import E
 def solver(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6) -> tuple:
     """
     Solves coupled integro ordinary differential equation 
+    x_span = range for x-values
+    y_span = range for y-values and number of grid points
+    Gamma = interaction strength
     """
     ys = ys = np.linspace(y_span[0], y_span[1], y_span[2])
     f0 = np.array([initial_condition(y, x_span[0]) for y in ys], dtype=np.float64)
