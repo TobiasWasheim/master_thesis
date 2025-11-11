@@ -2,8 +2,7 @@ import numpy as np
 import sys
 import scipy.integrate as sc
 from numba import njit
-from collisions import E, test_function, scattering, s_annihilation, p_annihilation, scattering_
-from EarlierVersion.CollisionOperators import collisions_ann, collisions_sca
+from collisions import E
 
 def solver(x_span,y_span,Gamma,initial_condition, collision, rtol=1e-6,atol=1e-6) -> tuple:
     """
@@ -75,3 +74,12 @@ def energy_conservation(x_span,y_span,Gamma,initial_condition,collision,rtol=1e-
         E_dot[k] = trapezoid(E_dot_integrand,ys)
     
     return (n_dot,E_dot,xs)
+
+
+def number_density(fs,ys) -> list:
+    gi = 2
+    ns = np.empty(len(fs[0]))
+    for j in range(len(fs[0])):
+        yyfs = [ys[i] * ys[i] * fs[i][j] for i in range(len(ys))]
+        ns[j] = gi * 1/(np.pi)**3 * trapezoid(yyfs,ys)
+    return ns

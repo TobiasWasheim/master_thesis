@@ -14,7 +14,7 @@ def density_equilibrium(x):
     """
     gi = 2
     gs = 1
-    solution = gi * 45 / (4 * np.pi**4) * x*x / gs 
+    solution = gi * 45 / (4 * np.pi**4) * x*x / gs * sc.kn(2,x)
     return solution
 
 def equilibrium(y,x):
