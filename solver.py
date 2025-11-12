@@ -86,3 +86,26 @@ def number_density(fs,ys) -> list:
         yyfs = [ys[i] * ys[i] * fs[i][j] for i in range(len(ys))]
         ns[j] = gi * 1/(np.pi)**3 * trapezoid(yyfs,ys)
     return ns
+
+
+
+def integrated_BE(x_span,Yeq,Gamma,rtol,atol):
+    """
+    Solving the integrated Boltzmann equation on the form
+
+    dnT^-3/dx = -<vσ> ((nT^-3)^2 - (n_eqT^-3)^2)
+    """
+
+    Y0 = Yeq(x_span[0])
+    print(Y0)
+    print("type Y0:",type(Y0))
+
+
+    def rhs(x,Y):
+        return -1/(32*np.pi) * Gamma/(x*x) * (Y*Y - Yeq(x)*Yeq(x))
+
+    sol = sc.solve_ivp(fun=rhs, t_span=x_span, y0=[Y0], method="BDF", rtol=rtol, atol=atol)
+
+    xs = sol.t
+    Ys = sol.y
+    return (xs,Ys)
